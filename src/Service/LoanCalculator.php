@@ -3,6 +3,13 @@ namespace App\Service;
 
 class LoanCalculator
 {
+    /**
+     * Method calculates installments
+     * @param float $amount
+     * @param int $installments
+     * @param float $interestRate
+     * @return array
+     */
     public function calculateSchedule(float $amount, int $installments, float $interestRate): array
     {
         $monthlyRate = $interestRate / 12 / 100;

@@ -1,34 +1,41 @@
 <?php
+
 namespace App\Controller;
 
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use App\Entity\Calculation;
 use App\Service\LoanCalculator;
+use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class CalculationController extends AbstractController
 {
-    
-    #[Route('/api/calculations', methods: ['POST'])]
-    public function calculate(Request $request, LoanCalculator $calculator, EntityManagerInterface $em, ValidatorInterface $validator, TokenStorageInterface $tokenStorage): JsonResponse
+
+    /**
+     * Calculation method for calculating the loan repayment schedule
+     * @param Request $request
+     * @param LoanCalculator $calculator
+     * @param EntityManagerInterface $em
+     * @param ValidatorInterface $validator
+     * @return JsonResponse
+     */
+    #[Route('/api/calculation', methods: ['POST'])]
+    public function calculate(Request $request, LoanCalculator $calculator, EntityManagerInterface $em, ValidatorInterface $validator): JsonResponse
     {
-         // Weryfikacja, czy użytkownik jest uwierzytelniony
-        
-        $data =  $request->getPayload()->all();
-        
-        $amount = (float) $data['amount'];
-        $installments = (int) $data['installments'];
-        $interestRate = (float) $data['interest_rate'];
+
+        $data = $request->getPayload()->all();
+
+        $amount = (float)$data['amount'];
+        $installments = (int)$data['installments'];
+        $interestRate = (float)$data['interest_rate'];
 
         $schedule = $calculator->calculateSchedule($amount, $installments, $interestRate);
-        
-          // Oblicz całkowite odsetki
+
+
         $totalInterest = array_reduce($schedule, function ($carry, $item) {
             return $carry + $item['interest'];
         }, 0);
@@ -37,15 +44,19 @@ class CalculationController extends AbstractController
         $calculation->setAmount($amount);
         $calculation->setInstallments($installments);
         $calculation->setInterestRate($interestRate);
-        $calculation->setCalculatedAt(new \DateTime());
+        $calculation->setCalculatedAt(new DateTime());
         $calculation->setSchedule($schedule);
-        $calculation->setTotalInterest((float) $totalInterest);
+        $calculation->setTotalInterest((float)$totalInterest);
 
         $violations = $validator->validate($calculation);
        
         if (count($violations) > 0) {
-            $errorsString = (string) $violations;
-            return new JsonResponse($errorsString, 400);
+            $messages = [];
+            foreach ($violations as $violation) {
+            
+                $messages[] = $violation->getMessage() . PHP_EOL;
+            }
+            return new JsonResponse(['errors' => $messages], 400);
         }
 
         $em->persist($calculation);
@@ -62,32 +73,33 @@ class CalculationController extends AbstractController
         ]);
     }
 
-    #[Route('/api/calculations', name: 'get_calculations', methods: ['GET'])]
-    public function listCalculations(Request $request, EntityManagerInterface $em, TokenStorageInterface $tokenStorage): JsonResponse
+    /**
+     * Method of listing calculations (4 last) sorted by total interest amount descending.
+     * If you want results only for those who are not excluded, you should pass
+     * the parameter filter='not_excluded' in the url
+     * @param Request $request
+     * @param EntityManagerInterface $em
+     * @return JsonResponse
+     */
+    #[Route('/api/listCalculations', name: 'get_calculations', methods: ['GET'])]
+    public function listCalculations(Request $request, EntityManagerInterface $em): JsonResponse
     {
-         // Weryfikacja, czy użytkownik jest uwierzytelniony
-         $user = $tokenStorage->getToken()->getUser();
-         if (!$user || !$this->isGranted('ROLE_USER')) {
-             throw new AccessDeniedException('Unauthorized access'); // Jeśli brak uprawnień
-         }
-        // Pobranie parametru `filter` (domyślnie "all")
+
         $filter = $request->query->get('filter', 'all');
 
-        // Budowa zapytania do bazy danych
         $queryBuilder = $em->createQueryBuilder()
             ->select('c')
             ->from('App\Entity\Calculation', 'c')
             ->orderBy('c.total_interest', 'DESC')
-             // Sortowanie malejąco po sumarycznej kwocie odsetek
-            ->setMaxResults(4); // Tylko 4 ostatnie kalkulacje
+            ->setMaxResults(4);
 
         if ($filter === 'not_excluded') {
-            $queryBuilder->where('c.is_excluded = false'); // Filtruj wyłącznie niewykluczone
+            $queryBuilder->where('c.is_excluded = false');
         }
 
         $calculations = $queryBuilder->getQuery()->getResult();
-       
-        // Formatuj wynik jako JSON
+
+
         $response = array_map(function ($calculation) {
             return [
                 'id' => $calculation->getId(),
@@ -103,26 +115,25 @@ class CalculationController extends AbstractController
         return new JsonResponse($response, 200);
     }
 
-    #[Route('/api/calculations/{id}/exclude', name: 'exclude_calculation', methods: ['PATCH'])]
+    /**
+     * The function excludes a record in the calculation table
+     * @param int $id
+     * @param EntityManagerInterface $em
+     * @return JsonResponse
+     */
+    #[Route('/api/excludeCalculation/{id}', name: 'exclude_calculation', methods: ['PATCH'])]
     public function excludeCalculation(int $id, EntityManagerInterface $em): JsonResponse
     {
-        //TokenStorageInterface $tokenStorage
-        // Autentykacja: sprawdzenie, czy użytkownik jest uprawniony (np. posiada token JWT)
-        //$user = $tokenStorage->getToken()->getUser();
 
-        // Tu możesz dodać sprawdzenie, czy użytkownik ma odpowiednie uprawnienia, np. admin.
-
-        // Pobranie kalkulacji z bazy
         $calculation = $em->getRepository(Calculation::class)->find($id);
 
         if (!$calculation) {
             return $this->json(['error' => 'Calculation not found.'], 404);
         }
 
-        // Zmiana statusu wykluczenia
         $calculation->setIsExcluded(true);
 
-        // Zapisanie zmian w bazie
+
         $em->persist($calculation);
         $em->flush();
 

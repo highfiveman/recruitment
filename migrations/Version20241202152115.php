@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20241201193731 extends AbstractMigration
+final class Version20241202152115 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -20,7 +20,7 @@ final class Version20241201193731 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('CREATE TABLE calculation ( id INT PRIMARY KEY AUTO_INCREMENT, amount DOUBLE PRECISION NOT NULL, installments INT NOT NULL, interest_rate DOUBLE PRECISION NOT NULL, calculated_at DATETIME NOT NULL, excluded TINYINT(1) NOT NULL, schedule JSON NOT NULL, total_interest DOUBLE PRECISION NOT NULL) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci`');
+        $this->addSql('CREATE TABLE calculation (id INT AUTO_INCREMENT NOT NULL, amount DOUBLE PRECISION NOT NULL, installments INT NOT NULL, interest_rate DOUBLE PRECISION NOT NULL, calculated_at DATETIME NOT NULL, total_interest DOUBLE PRECISION NOT NULL, is_excluded TINYINT(1) NOT NULL, schedule JSON NOT NULL, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
     }
 
     public function down(Schema $schema): void

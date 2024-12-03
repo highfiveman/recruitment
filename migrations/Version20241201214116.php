@@ -26,6 +26,6 @@ final class Version20241201214116 extends AbstractMigration
     public function down(Schema $schema): void
     {
         // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE calculation CHANGE schedule schedule LONGTEXT NOT NULL COLLATE `utf8mb4_bin`');
+        $this->addSql('ALTER TABLE calculation CHANGE schedule schedule LONGTEXT NOT NULL COLLATE `utf8mb4_unicode_ci`');
     }
 }

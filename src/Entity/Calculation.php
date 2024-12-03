@@ -2,6 +2,7 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use phpDocumentor\Reflection\Types\Integer;
 use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 class Calculation
@@ -9,26 +10,26 @@ class Calculation
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
-    private $id;
+    private int $id;
 
     #[Assert\NotBlank]
     #[Assert\Type("numeric")]
-    #[Assert\Range(['min' => 1000, 'max' => 120000])]
+    #[Assert\Range(['min' => 1000, 'max' => 12000])]
     #[Assert\DivisibleBy(500)]
     #[ORM\Column(type: 'float')]
-    private $amount;
+    private float $amount;
 
     #[ORM\Column(type: 'integer')]
-    #[Assert\Range(['min' => 3, 'max' => 120])]
+    #[Assert\Range(['min' => 3, 'max' => 18])]
     #[Assert\DivisibleBy(3)]
-    private $installments;
+    private int $installments;
 
     
     #[ORM\Column(type: 'float')]
-    private $interest_rate;
+    private float $interest_rate;
 
     #[ORM\Column(type: 'datetime')]
-    private $calculated_at;
+    private \DateTime $calculated_at;
 
     #[ORM\Column(type: 'float')]
     private float $total_interest;
@@ -37,7 +38,7 @@ class Calculation
     private bool $is_excluded = false;
 
     #[ORM\Column(type: 'json')]
-    private $schedule = [];
+    private array $schedule = [];
 
     // Getters and Setters ...
     public function getId(): ?int
@@ -75,12 +76,12 @@ class Calculation
         return $this->interest_rate;
     }
 
-    public function setCalculatedAt( $calculatedAt)
+    public function setCalculatedAt( $calculatedAt): \DateTime
     {
         return $this->calculated_at = $calculatedAt;
     }
 
-    public function getCalculatedAt()
+    public function getCalculatedAt(): \DateTime
     {
         return $this->calculated_at;
     }
@@ -90,11 +91,11 @@ class Calculation
         return $this->schedule = $schedule;
     }
 
-    public function getSchedule()
+    public function getSchedule(): array
     {
         return $this->schedule;
     }
-  // Getter i setter dla totalInterest
+
   public function getTotalInterest(): ?float
   {
       return $this->total_interest;
@@ -106,7 +107,6 @@ class Calculation
       return $this;
   }
 
-  // Getter i setter dla isExcluded
   public function isExcluded(): bool
   {
       return $this->is_excluded;
